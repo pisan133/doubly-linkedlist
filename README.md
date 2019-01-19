@@ -1,5 +1,5 @@
-# double linkedlist
+# doubly linkedlist
 
-Double Linked List
+Doubly Linked List
 
 
