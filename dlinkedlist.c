@@ -7,6 +7,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdbool.h>
+#include <time.h>
 #include <assert.h>
 
 // self-referential Node structure
@@ -41,6 +42,11 @@ void print(Node *start) {
     curr = curr->nextPtr;
   }
   printf("NULL\n");
+}
+
+// print all nodes from back (including dummy head)
+void printBackward(Node *start) {
+  // TODO
 }
 
 // create a new node on the HEAP and return it
@@ -300,6 +306,85 @@ void testAddBeforeAfterSorted() {
     print(head);
   }
 
+  freeAll(head);
+}
+
+// return largest node (skip dummy head)
+// return NULL if empty
+Node *findLargest(Node *start) {
+  Node *largest = NULL;
+  // TODO
+  return largest;
+}
+
+// return smallest node (skip dummy head)
+// return NULL if empty
+Node *findSmallest(Node *start) {
+  Node *smallest = NULL;
+  // TODO
+  return smallest;
+}
+
+// swapping place of nodes
+// Name the nodes as follows: a-big-c and k-little-m
+// Want a-little-c and k-big-m
+// a, c, k and m can be NULL so have to check
+void swapNodes(Node *big, Node *little) {
+  // TODO
+}
+
+/**
+ * Run several tests, expected output is something like below
+ * Uses random numbers, so output will be different for each
+ * Forward:
+ * 0 <--> 7 <--> 49 <--> 73 <--> 58 <--> 30 <--> 72 <--> 44 <--> NULL
+ * Backward:
+ * NULL <--> 44 <--> 72 <--> 30 <--> 58 <--> 73 <--> 49 <--> 7 <--> 0
+ * Swapping largest: 73 with smallest: 7
+ * 0 <--> 73 <--> 49 <--> 7 <--> 58 <--> 30 <--> 72 <--> 44 <--> NULL
+ * Removing largest: 73
+ * 0 <--> 49 <--> 7 <--> 58 <--> 30 <--> 72 <--> 44 <--> NULL
+ * Removing largest: 72
+ * 0 <--> 49 <--> 7 <--> 58 <--> 30 <--> 44 <--> NULL
+ * Removing largest: 58
+ * 0 <--> 49 <--> 7 <--> 30 <--> 44 <--> NULL
+ * Removing largest: 49
+ * 0 <--> 7 <--> 30 <--> 44 <--> NULL
+ * Removing largest: 44
+ * 0 <--> 7 <--> 30 <--> NULL
+ * Removing largest: 30
+ * 0 <--> 7 <--> NULL
+ * Removing largest: 7
+ * 0 <--> NULL
+ */
+void testLargestSmallestSwap() {
+  // Intializes random number generator
+  time_t t;
+  srand((unsigned) time(&t));
+  Node *head = makeNode(0);
+
+  for (int i = 0; i < 7; ++i) {
+    int rnd = rand() % 100;
+    addToEnd(head, rnd);
+  }
+  printf("Forward:\n");
+  print(head);
+  printf("Backward:\n");
+  printBackward(head);
+  Node *large = findLargest(head);
+  Node *small = findSmallest(head);
+  printf("Swapping largest: %d with ", large->data);
+  printf("smallest: %d\n", small->data);
+  swapNodes(large, small);
+  print(head);
+  // remove them one by one
+  large = findLargest(head);
+  while (large != NULL) {
+    printf("Removing largest: %d\n", large->data);
+    removeSingleNode(large);
+    print(head);
+    large = findLargest(head);
+  }
   freeAll(head);
 }
 

@@ -10,10 +10,12 @@
 // forward declaration, implemented in linkedlist.c
 void testInteractive();
 void testAddBeforeAfterSorted();
+void testLargestSmallestSwap();
 
 int main() {
   // testInteractive();
-  testAddBeforeAfterSorted();
+  // testAddBeforeAfterSorted();
+  testLargestSmallestSwap();
   printf("Done!\n");
   return 0;
 }
