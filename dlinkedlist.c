@@ -7,6 +7,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdbool.h>
+#include <assert.h>
 
 // self-referential Node structure
 struct Node {
@@ -30,28 +31,19 @@ int getInt(const char *prompt) {
   return atoi(cstr);
 }
 
-// print all nodes except special dummy headtail node
-void print(Node *headtail) {
-  if (headtail->nextPtr == NULL) {
-    printf("EMPTY\n");
-    return;
-  } else {
-    printf("First: %d, Last: %d\n",
-           headtail->nextPtr->data, headtail->prevPtr->data);
-  }
-  // print the first one
-  Node *curr = headtail->nextPtr;
-  printf("%d", curr->data);
-  // print rest with arrows before them
-  curr = curr->nextPtr;
+// print all nodes (including dummy head)
+void print(Node *start) {
+  // guaranteed to have at least dummy header node
+  assert(start);
+  Node *curr = start;
   while (curr != NULL) {
-    printf(" <--> %d", curr->data);
+    printf("%d <--> ", curr->data);
     curr = curr->nextPtr;
   }
-  printf("\n");
+  printf("NULL\n");
 }
 
-// create a new node on the HEAP
+// create a new node on the HEAP and return it
 Node *makeNode(int value) {
   Node *n = (Node *) malloc(sizeof(Node));
   n->data = value;
@@ -61,98 +53,97 @@ Node *makeNode(int value) {
 }
 
 // add a new item to the end of the list
-void addToEnd(Node *headtail, int value) {
+void addToEnd(Node *start, int value) {
   Node *newNode = makeNode(value);
-  if (headtail->nextPtr == NULL) {
-    // if empty
-    headtail->nextPtr = newNode;
-    headtail->prevPtr = newNode;
-  } else {
-    // add to end
-    Node *lastNode = headtail->prevPtr;
-    lastNode->nextPtr = newNode;
-    newNode->prevPtr = lastNode;
-    headtail->prevPtr = newNode;
+  Node *curr = start;
+  while (curr->nextPtr != NULL) {
+    curr = curr->nextPtr;
   }
+  curr->nextPtr = newNode;
+  newNode->prevPtr = curr;
 }
 
 // add the value given before other
 // if other is not in the list add value at the end
-void addBefore(Node *headtail, int value, int other) {
-  Node *curr = headtail->nextPtr;
-  while (curr != NULL && curr->data != other) {
+void addBefore(Node *start, int value, int other) {
+  Node *curr = start;
+  while (curr->nextPtr != NULL && curr->nextPtr->data != other) {
     curr = curr->nextPtr;
   }
-  if (curr == NULL) {
+  if (curr->nextPtr == NULL) {
     // could not find, add to end
-    addToEnd(headtail, value);
+    Node *newNode = makeNode(value);
+    curr->nextPtr = newNode;
+    newNode->prevPtr = curr;
   } else {
-    // call current node c, the new node b, order nodes as a-b-c
-    Node *c = curr;
+    assert(curr->nextPtr->data == other);
+    // call current node a, the new node b, the one after current c
+    // turn a-c into a-b-c
+    Node *a = curr;
     Node *b = makeNode(value);
-    Node *a = c->prevPtr;
-    c->prevPtr = b;
-    b->nextPtr = c;
+    Node *c = a->nextPtr;
+    a->nextPtr = b;
     b->prevPtr = a;
-    if (a == NULL) {
-      // c must have been the first node
-      headtail->nextPtr = b;
-    } else {
-      a->nextPtr = b;
-    }
+    b->nextPtr = c;
+    c->prevPtr = b;
   }
 }
 
 // add the value given after other
 // if other is not in the list add value at the end
-void addAfter(Node *headtail, int value, int other) {
-  Node *curr = headtail->nextPtr;
-  while (curr != NULL && curr->data != other) {
+void addAfter(Node *start, int value, int other) {
+  Node *curr = start;
+  while (curr->nextPtr != NULL && curr->nextPtr->data != other) {
     curr = curr->nextPtr;
   }
-  if (curr == NULL) {
+  if (curr->nextPtr == NULL) {
     // could not find, add to end
-    addToEnd(headtail, value);
+    Node *newNode = makeNode(value);
+    curr->nextPtr = newNode;
+    newNode->prevPtr = curr;
   } else {
-    // call current node a, the new node b, order nodes as a-b-c
-    Node *a = curr;
+    assert(curr->nextPtr->data == other);
+    // call the node after curr a, the one after that c
+    // call the new node to be created b. Make a-b-c
+    Node *a = curr->nextPtr;
     Node *b = makeNode(value);
-    Node *c = a->nextPtr;
+    Node *c = a->nextPtr;  // could be NULL
     a->nextPtr = b;
-    b->nextPtr = c;
     b->prevPtr = a;
-    if (c == NULL) {
-      // a must have been the last node
-      headtail->prevPtr = b;
-    } else {
+    b->nextPtr = c;
+    if (c != NULL) {
+      b->nextPtr = c;
       c->prevPtr = b;
     }
   }
 }
 
 // add the value given in sorted order
-void addSorted(Node *headtail, int value) {
-  Node *curr = headtail->nextPtr;
-  if (curr == NULL) {
-    // list is empty
-    addToEnd(headtail, value);
+void addSorted(Node *start, int value) {
+  Node *curr = start;
+  while (curr->nextPtr != NULL && curr->nextPtr->data < value) {
+    curr = curr->nextPtr;
+  }
+  if (curr->nextPtr == NULL) {
+    // adding to end
+    Node *newNode = makeNode(value);
+    curr->nextPtr = newNode;
+    newNode->prevPtr = curr;
   } else {
-    // find curr that has a bigger value
-    while (curr != NULL && curr->data < value) {
-      curr = curr->nextPtr;
-    }
-    // if larger than all nodes
-    if (curr == NULL) {
-      addToEnd(headtail, value);
-    } else {
-      addBefore(headtail, value, curr->data);
-    }
+    // adding between curr and curr->nextptr
+    Node *a = curr;
+    Node *b = makeNode(value);
+    Node *c = a->nextPtr;
+    a->nextPtr = b;
+    b->prevPtr = a;
+    b->nextPtr = c;
+    c->prevPtr = b;
   }
 }
 
 // return true if value is in the linked list
-bool contains(Node *headtail, int value) {
-  Node *curr = headtail->nextPtr;
+bool contains(Node *start, int value) {
+  Node *curr = start->nextPtr;
   while (curr != NULL) {
     if (curr->data == value)
       return true;
@@ -178,28 +169,23 @@ void removeSingleNode(Node *b) {
 // if successfully removed, return true
 // if value not found in the linked list, return false
 // Once node is removed, it must be free'd
-bool removeNode(Node *headtail, int value) {
-  Node *curr = headtail->nextPtr;
-  while (curr != NULL && curr->data != value) {
+bool removeNode(Node *start, int value) {
+  Node *curr = start->nextPtr;
+  while (curr != NULL) {
+    if (curr->data == value) {
+      removeSingleNode(curr);
+      return true;
+    }
     curr = curr->nextPtr;
   }
-  if (curr == NULL)
-    return false;
-  // if first or last node, set headtail
-  if (headtail->nextPtr == curr)
-    headtail->nextPtr = curr->nextPtr;
-  if (headtail->prevPtr == curr)
-    headtail->prevPtr = curr->prevPtr;
-  // call remove single
-  removeSingleNode(curr);
-  return true;
+  return false;
 }
 
 // free all nodes
-void freeAll(Node *curr) {
-  while (curr != NULL) {
-    Node *todelete = curr;
-    curr = curr->nextPtr;
+void freeAll(Node *start) {
+  while (start != NULL) {
+    Node *todelete = start;
+    start = start->nextPtr;
     printf("Deleting %d\n", todelete->data);
     free(todelete);
   }
@@ -207,145 +193,126 @@ void freeAll(Node *curr) {
 
 /**
  * Run several tests, expected output is:
+ * Contains 40? Yes
  * Starting list
- * First: 20, Last: 60
- * 20 <--> 30 <--> 40 <--> 50 <--> 60
+ * 0 <--> 20 <--> 30 <--> 40 <--> 50 <--> 60 <--> NULL
  * Adding 25 to be before 30
- * First: 20, Last: 60
- * 20 <--> 25 <--> 30 <--> 40 <--> 50 <--> 60
+ * 0 <--> 20 <--> 25 <--> 30 <--> 40 <--> 50 <--> 60 <--> NULL
  * Adding 45 to be after 40
- * First: 20, Last: 60
- * 20 <--> 25 <--> 30 <--> 40 <--> 45 <--> 50 <--> 60
+ * 0 <--> 20 <--> 25 <--> 30 <--> 40 <--> 45 <--> 50 <--> 60 <--> NULL
  * Adding 80 to be before 1000
- * First: 20, Last: 80
- * 20 <--> 25 <--> 30 <--> 40 <--> 45 <--> 50 <--> 60 <--> 80
+ * 0 <--> 20 <--> 25 <--> 30 <--> 40 <--> 45 <--> 50 <--> 60 <--> 80 <--> NULL
  * Adding 100 to be after 1000
- * First: 20, Last: 100
- * 20 <--> 25 <--> 30 <--> 40 <--> 45 <--> 50 <--> 60 <--> 80 <--> 100
+ * 0 <--> 20 <--> 25 <--> 30 <--> 40 <--> 45 <--> 50 <--> 60 <--> 80 <--> 100 <--> NULL
  * Adding 10 to be before 20
- * First: 10, Last: 100
- * 10 <--> 20 <--> 25 <--> 30 <--> 40 <--> 45 <--> 50 <--> 60 <--> 80 <--> 100
+ * 0 <--> 10 <--> 20 <--> 25 <--> 30 <--> 40 <--> 45 <--> 50 <--> 60 <--> 80 <--> 100 <--> NULL
  * Adding sorted 5
- * First: 5, Last: 100
- * 5 <--> 10 <--> 20 <--> 25 <--> 30 <--> 40 <--> 45 <--> 50 <--> 60 <--> 80 <--> 100
+ * 0 <--> 5 <--> 10 <--> 20 <--> 25 <--> 30 <--> 40 <--> 45 <--> 50 <--> 60 <--> 80 <--> 100 <--> NULL
  * Adding sorted 31
- * First: 5, Last: 100
- * 5 <--> 10 <--> 20 <--> 25 <--> 30 <--> 31 <--> 40 <--> 45 <--> 50 <--> 60 <--> 80 <--> 100
+ * 0 <--> 5 <--> 10 <--> 20 <--> 25 <--> 30 <--> 31 <--> 40 <--> 45 <--> 50 <--> 60 <--> 80 <--> 100 <--> NULL
  * Adding sorted 120
- * First: 5, Last: 120
- * 5 <--> 10 <--> 20 <--> 25 <--> 30 <--> 31 <--> 40 <--> 45 <--> 50 <--> 60 <--> 80 <--> 100 <--> 120
+ * 0 <--> 5 <--> 10 <--> 20 <--> 25 <--> 30 <--> 31 <--> 40 <--> 45 <--> 50 <--> 60 <--> 80 <--> 100 <--> 120 <--> NULL
  * Remove node 120
- * First: 5, Last: 100
- * 5 <--> 10 <--> 20 <--> 25 <--> 30 <--> 31 <--> 40 <--> 45 <--> 50 <--> 60 <--> 80 <--> 100
+ * 0 <--> 5 <--> 10 <--> 20 <--> 25 <--> 30 <--> 31 <--> 40 <--> 45 <--> 50 <--> 60 <--> 80 <--> 100 <--> NULL
  * Remove node 31
- * First: 5, Last: 100
- * 5 <--> 10 <--> 20 <--> 25 <--> 30 <--> 40 <--> 45 <--> 50 <--> 60 <--> 80 <--> 100
+ * 0 <--> 5 <--> 10 <--> 20 <--> 25 <--> 30 <--> 40 <--> 45 <--> 50 <--> 60 <--> 80 <--> 100 <--> NULL
  * Remove node 5
- * First: 10, Last: 100
- * 10 <--> 20 <--> 25 <--> 30 <--> 40 <--> 45 <--> 50 <--> 60 <--> 80 <--> 100
+ * 0 <--> 10 <--> 20 <--> 25 <--> 30 <--> 40 <--> 45 <--> 50 <--> 60 <--> 80 <--> 100 <--> NULL
  * Remove node 10
- * First: 20, Last: 100
- * 20 <--> 25 <--> 30 <--> 40 <--> 45 <--> 50 <--> 60 <--> 80 <--> 100
+ * 0 <--> 20 <--> 25 <--> 30 <--> 40 <--> 45 <--> 50 <--> 60 <--> 80 <--> 100 <--> NULL
  * Remove node 20
- * First: 25, Last: 100
- * 25 <--> 30 <--> 40 <--> 45 <--> 50 <--> 60 <--> 80 <--> 100
+ * 0 <--> 25 <--> 30 <--> 40 <--> 45 <--> 50 <--> 60 <--> 80 <--> 100 <--> NULL
  * Remove node 25
- * First: 30, Last: 100
- * 30 <--> 40 <--> 45 <--> 50 <--> 60 <--> 80 <--> 100
+ * 0 <--> 30 <--> 40 <--> 45 <--> 50 <--> 60 <--> 80 <--> 100 <--> NULL
  * Remove node 30
- * First: 40, Last: 100
- * 40 <--> 45 <--> 50 <--> 60 <--> 80 <--> 100
+ * 0 <--> 40 <--> 45 <--> 50 <--> 60 <--> 80 <--> 100 <--> NULL
  * Remove node 40
- * First: 45, Last: 100
- * 45 <--> 50 <--> 60 <--> 80 <--> 100
+ * 0 <--> 45 <--> 50 <--> 60 <--> 80 <--> 100 <--> NULL
  * Remove node 45
- * First: 50, Last: 100
- * 50 <--> 60 <--> 80 <--> 100
+ * 0 <--> 50 <--> 60 <--> 80 <--> 100 <--> NULL
  * Remove node 50
- * First: 60, Last: 100
- * 60 <--> 80 <--> 100
+ * 0 <--> 60 <--> 80 <--> 100 <--> NULL
  * Remove node 60
- * First: 80, Last: 100
- * 80 <--> 100
+ * 0 <--> 80 <--> 100 <--> NULL
  * Remove node 80
- * First: 100, Last: 100
- * 100
+ * 0 <--> 100 <--> NULL
  * Remove node 100
- * EMPTY
+ * 0 <--> NULL
  * Deleting 0
  */
 void testAddBeforeAfterSorted() {
-  Node *headtail = makeNode(0);
+  Node *head = makeNode(0);
 
   for (int i = 20; i < 70; i += 10) {
-    addToEnd(headtail, i);
+    addToEnd(head, i);
   }
+  printf("Contains 40? %s\n", contains(head, 40) ? "Yes" : "No");
   printf("Starting list\n");
-  print(headtail);
+  print(head);
 
   printf("Adding 25 to be before 30\n");
-  addBefore(headtail, 25, 30);
-  print(headtail);
+  addBefore(head, 25, 30);
+  print(head);
 
   printf("Adding 45 to be after 40\n");
-  addAfter(headtail, 45, 40);
-  print(headtail);
+  addAfter(head, 45, 40);
+  print(head);
 
   printf("Adding 80 to be before 1000\n");
-  addBefore(headtail, 80, 1000);
-  print(headtail);
+  addBefore(head, 80, 1000);
+  print(head);
 
   printf("Adding 100 to be after 1000\n");
-  addAfter(headtail, 100, 1000);
-  print(headtail);
+  addAfter(head, 100, 1000);
+  print(head);
 
   printf("Adding 10 to be before 20\n");
-  addBefore(headtail, 10, 20);
-  print(headtail);
+  addBefore(head, 10, 20);
+  print(head);
 
   printf("Adding sorted 5\n");
-  addSorted(headtail, 5);
-  print(headtail);
+  addSorted(head, 5);
+  print(head);
 
   printf("Adding sorted 31\n");
-  addSorted(headtail, 31);
-  print(headtail);
+  addSorted(head, 31);
+  print(head);
 
   printf("Adding sorted 120\n");
-  addSorted(headtail, 120);
-  print(headtail);
+  addSorted(head, 120);
+  print(head);
 
   printf("Remove node 120\n");
-  removeNode(headtail, 120);
-  print(headtail);
+  removeNode(head, 120);
+  print(head);
 
   printf("Remove node 31\n");
-  removeNode(headtail, 31);
-  print(headtail);
+  removeNode(head, 31);
+  print(head);
 
   printf("Remove node 5\n");
-  removeNode(headtail, 5);
-  print(headtail);
+  removeNode(head, 5);
+  print(head);
 
-  while (headtail->nextPtr != NULL) {
-    printf("Remove node %d\n", headtail->nextPtr->data);
-    removeNode(headtail, headtail->nextPtr->data);
-    print(headtail);
+  while (head->nextPtr != NULL) {
+    printf("Remove node %d\n", head->nextPtr->data);
+    removeNode(head, head->nextPtr->data);
+    print(head);
   }
 
-  freeAll(headtail);
+  freeAll(head);
 }
 
 // get new values from user and add them to the list
 void testInteractive() {
   // head is set to a node instead of NULL for simplicity
-  Node *headtail = makeNode(0);
+  Node *head = makeNode(0);
   int input = getInt("Enter a number (-1 to end): ");
   while (input != -1) {
-    addToEnd(headtail, input);
-    print(headtail);
+    addToEnd(head, input);
+    print(head);
     input = getInt("Enter a number (-1 to end): ");
   }
-  freeAll(headtail);
+  freeAll(head);
 }
 
